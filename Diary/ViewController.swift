@@ -68,7 +68,7 @@ class ViewController: UIViewController {
         })
     }
     
-    
+    //date의 정보를 문자열 형태로 fommater
     private func dateToString(date : Date) -> String {
          let formatter = DateFormatter()
          formatter.dateFormat = "yy년 MM월 dd일(EEEEE)"
@@ -96,6 +96,17 @@ extension ViewController : UICollectionViewDelegateFlowLayout {
     }
 }
 
+//각 일기를 선택했을 때 detailView로 이동할 수 있도록
+extension ViewController : UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let viewController = self.storyboard?.instantiateViewController(withIdentifier: "DiaryDetailViewController") as? DiaryDetailViewController else {return}
+        let diary = self.diaryList[indexPath.row]
+        viewController.diary = diary
+        viewController.indexPath = indexPath
+        self.navigationController?.pushViewController(viewController, animated: true)
+    }
+}
+
 extension ViewController : WriteDiaryViewDelegate {
     func didSelectRegister(diary: Diary) {
         self.diaryList.append(diary)
@@ -105,5 +116,7 @@ extension ViewController : WriteDiaryViewDelegate {
         })
     }
 }
+
+
 
 
