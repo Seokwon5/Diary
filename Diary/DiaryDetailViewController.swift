@@ -7,23 +7,22 @@
 
 import UIKit
 
-protocol DiaryDetailViewDelegate: AnyObject {
-    func didSelectDelete(indexPath: IndexPath)
-}
-
 class DiaryDetailViewController: UIViewController {
     @IBOutlet weak var dateLabel: UILabel!
     @IBOutlet weak var contentsTextView: UITextView!
     @IBOutlet weak var titleLabel: UILabel!
     var starButton: UIBarButtonItem?
-    weak var delegate: DiaryDetailViewDelegate?
-    
     var diary: Diary?
     var indexPath: IndexPath?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         self.configureView()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(starDiaryNotification(_:)),
+            name: NSNotification.Name("starDiary"),
+            object: nil)
 
     }
     
@@ -49,15 +48,28 @@ class DiaryDetailViewController: UIViewController {
     
     @objc func editDiaryNotification (_ notification : Notification) {
         guard let diary = notification.object as? Diary else {return}
-        guard let row = notification.userInfo?["indexPath.row"] as? Int else {return}
         self.diary = diary
         self.configureView()
+    }
+    
+    @objc func starDiaryNotification (_ notification : Notification) {
+        guard let starDiary = notification.object as? [String: Any] else {return}
+        guard let isStar = starDiary["isStar"] as? Bool else {return}
+        guard let uuidString = starDiary["uuidString"] as? String else {return}
+        guard let diary = self.diary else {return}
+        if diary.uuidString == uuidString {
+            self.diary?.isStar = isStar
+            self.configureView()
+        }
     }
 
     //삭제 버튼 클릭 시
     @IBAction func tapDeleteButton(_ sender: UIButton) {
-        guard let indexPath = self.indexPath else {return} //indexPath를 옵셔널 바인딩
-        self.delegate?.didSelectDelete(indexPath: indexPath) //didSelectDelete메소드에 indexPath 넣어주기
+        guard let uuidString = self.diary?.uuidString else {return} //indexPath를 옵셔널 바인딩
+        NotificationCenter.default.post(
+            name: NSNotification.Name("deleteDiary"),
+            object: uuidString,
+            userInfo: nil)
         self.navigationController?.popViewController(animated: true) //완료되면 이전화면으로
         
 
@@ -79,13 +91,26 @@ class DiaryDetailViewController: UIViewController {
     //즐겨찾기 버튼 클릭 시
     @objc func tapStarButton() {
         guard let isStar = self.diary?.isStar else {return}
+
         if isStar {
             self.starButton?.image = UIImage(systemName: "star")
         }else {
             self.starButton?.image = UIImage(systemName: "star.fill")
         }
         self.diary?.isStar = !isStar
+        NotificationCenter.default.post(
+            name: NSNotification.Name("starDiary"),
+            object: [
+                "diary": self.diary, 
+                "isStar": self.diary?.isStar ?? false,
+                "uuidString": diary?.uuidString
+            ],
+            userInfo: nil
+        )
+        
     }
+    
+    
     
     deinit {
         NotificationCenter.default.removeObserver(self)
